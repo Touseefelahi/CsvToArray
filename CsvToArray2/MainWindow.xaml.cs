@@ -756,14 +756,7 @@ namespace CsvToArray
                     + " A2=" + angleData[(int)distance, heightInt].ToString()
                     + " D=" + distance.ToString()
                     + " T=" + flightTimeData[rangeInt, heightInt].ToString();
-                if (heightActual < 0)
-                {
-                    double sightAngle = Math.Sinh((heightActual / rangeInt) )*17.7;
-                    double angleFire = angleData[rangeInt, heightInt];
-                    double angleFireAt0 = angleData[rangeInt, 5000];
-                    double angleDifference = angleFire - sightAngle;
-                    angle.Text = $"{sightAngle},{angleFire},{angleDifference},{angleFireAt0}";
-                }
+
 
 
             }
