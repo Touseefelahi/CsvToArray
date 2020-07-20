@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Stira.WpfCore;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace CsvToArray
@@ -15,14 +17,80 @@ namespace CsvToArray
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = this;
             const string filePath = @"C:\Users\STIRA\source\repos\ReticleGenerator2.0\Presentation\ReticleGenerator\bin\Debug\netcoreapp3.1\RHA -200_1100 Gap=0.1 DistanceClip=2500.csv";
             const string filePath2 = @"C:\Users\STIRA\source\repos\ReticleGenerator2.0\Presentation\ReticleGenerator\bin\Debug\netcoreapp3.1\RHA -200_1100 Gap=0.1 DistanceClip=2500.csv";
-            //GenerateCsvWithDashZeroLevel(filePath);
-            GenerateCsvWithDashNegative500(filePath2);
-            //GenerateArray(filePath);
+            const string fileAngle = "angleSpaceDelimated 65 -500 level.txt";
+            const string fileTime = "timeSpaceDelimated 65 -500 level.txt";
+            AngleCalculateFromDistanceCommand = new DelegateCommand(CalculateFromDistance);
+            AngleCalculateFromRangeCommand = new DelegateCommand(CalculateFromRange);
+            Task.Run(() =>
+            {
+                OpenAnglesForTesting(fileAngle);
+            });
+            Task.Run(() =>
+            {
+                OpenTimesForTesting(fileTime);
+            });
         }
 
+        private void CalculateFromDistance()
+        {
+            buttonCalculateDistance_Click(null, null);
+        }
 
+        private void CalculateFromRange()
+        {
+            Button_Click(null, null);
+        }
+
+        private void OpenAnglesForTesting(string fileAngle)
+        {
+            angle.Dispatcher.Invoke(() =>
+            {
+                angle.Text = "Reading Angles";
+            });
+            int rangeLength = 2501;
+            int heightLength = 30001;
+            angleData = new Int16[rangeLength, heightLength];
+            flightTimeData = new Int16[rangeLength, heightLength];
+
+
+            var fileStream = File.OpenText(fileAngle);
+            string line;
+            while ((line = fileStream.ReadLine()) != null)
+            {
+                var value = line.Split(' ');
+                angleData[Convert.ToInt16(value[0]), Convert.ToInt16(Convert.ToDouble(value[1]))] = Convert.ToInt16(Convert.ToDouble(value[2]));
+            }
+            angle.Dispatcher.Invoke(() =>
+            {
+                angle.Text = "Reading Completed";
+            });
+        }
+
+        private void OpenTimesForTesting(string fileTime)
+        {
+            angle3.Dispatcher.Invoke(() =>
+            {
+                angle3.Text = "Reading Time";
+            });
+            int rangeLength = 2501;
+            int heightLength = 30001;
+            flightTimeData = new Int16[rangeLength, heightLength];
+
+            var fileStream2 = File.OpenText(fileTime);
+            string line;
+            while ((line = fileStream2.ReadLine()) != null)
+            {
+                var value = line.Split(' ');
+                flightTimeData[Convert.ToInt16(value[0]), Convert.ToInt16(Convert.ToDouble(value[1]))] = Convert.ToInt16(Convert.ToDouble(value[2]));
+            }
+            angle3.Dispatcher.Invoke(() =>
+            {
+                angle3.Text = "Reading Completed";
+            });
+        }
 
         private static void GenerateArray(string filePath)
         {
@@ -192,6 +260,10 @@ namespace CsvToArray
             File.AppendAllText("csvDashHash.txt", stringBuilder.ToString());
         }
         short[,] angleData, angleDataFilled, flightTimeData;
+
+        public DelegateCommand AngleCalculateFromDistanceCommand { get; }
+        public DelegateCommand AngleCalculateFromRangeCommand { get; }
+
         private void GenerateCsvWithDashZeroLevel(string filePath)
         {
             int rangeLength = 2501;
@@ -492,6 +564,8 @@ namespace CsvToArray
 
         }
 
+
+
         private void GenerateCsvWithDashNegative500(string filePath)
         {
             int rangeLength = 2501;
@@ -503,8 +577,8 @@ namespace CsvToArray
             int count = 0;
             int heightOffset = 5000;
             Int16 angle;
-            int range; ;
-            int height; ;
+            int range;
+            int height;
             Int16 flightTime = 0;
             int maxRange = 0;
             int maxHeight = 0;
@@ -574,7 +648,7 @@ namespace CsvToArray
             File.WriteAllText("50sDelimated.txt", "");
             StringBuilder stringBuilder50s = new StringBuilder();
             List<int> actualAngle = new List<int>
-                (new int[] { 0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 30, 34, 39, 44, 49, 55, 62, 68 });
+                (new int[] { 0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 26, 30, 34, 39, 44, 49, 55, 62, 68 });
             int indexAngle = 0;
             for (int i = 100; i <= 2500; i += 100)
             {
@@ -740,32 +814,81 @@ namespace CsvToArray
 
             File.AppendAllText("UnFilledPoints.txt", unfilledPoints.ToString());
             File.AppendAllText("FilledPoints.txt", filledPoints.ToString());
-
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
+
             try
             {
                 int rangeInt = Convert.ToInt32(range.Text);
                 float heightActual = Convert.ToSingle(height.Text);
+                if (rangeInt > 2500 || heightActual > 2500)
+                {
+                    angle.Text = "";
+                    angle3.Text = "Out of range";
+                    return;
+                }
                 int heightInt = Convert.ToInt32(heightActual * 10) + 5000;
                 double distance = Math.Round(Math.Sqrt(rangeInt * rangeInt - heightActual * heightActual), 1);
-
-                angle.Text = angleData[rangeInt, heightInt].ToString()
-                    + " A2=" + angleData[(int)distance, heightInt].ToString()
-                    + " D=" + distance.ToString()
-                    + " T=" + flightTimeData[rangeInt, heightInt].ToString();
-                if (heightActual < 0)
+                int rangeFromDistance = (int)Math.Round(Math.Sqrt(rangeInt * rangeInt + heightActual * heightActual));
+                var angleRequired = angleData[rangeInt, heightInt] / 10.0;
+                if (angleRequired == 0)
                 {
-                    double sightAngle = Math.Sinh((heightActual / rangeInt) )*17.7;
-                    double angleFire = angleData[rangeInt, heightInt];
-                    double angleFireAt0 = angleData[rangeInt, 5000];
-                    double angleDifference = angleFire - sightAngle;
-                    angle.Text = $"{sightAngle},{angleFire},{angleDifference},{angleFireAt0}";
+                    angle.Text = $"Distance: {distance} m";
+                    angle3.Text = "Out of range";
+                    return;
                 }
+                angle.Text = "FA: " + (angleRequired).ToString()
+                    + $" mils, {Math.Round((angleData[rangeInt, heightInt] / 10.0) * (2 * Math.PI / 6.4), 1)} mRad, D: " + distance.ToString()
+                    + " m, T: " + flightTimeData[rangeInt, heightInt].ToString() + " ms";
 
+                double sightAngle = Math.Asin((float)(heightActual / rangeInt)) * (6400 / (2 * Math.PI));
+                double angleFire = angleData[rangeInt, heightInt] / 10.0;
+                double angleFireAt0 = angleData[rangeInt, 5000] / 10.0;
+                double angleDifference = angleFire - sightAngle;
+                angle3.Text = $"Sight Angle: {sightAngle} mils\n" +
+                    $"Firing Angle: {angleFire} mils\n" +
+                    $"Elevation at {angleFire} mils: {angleDifference} mils\n" +
+                    $"Elevation at 0 mils: {angleFireAt0} mils\n" +
+                    $"Elevation Difference: {angleDifference - angleFireAt0} mils";
 
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+        private void buttonCalculateDistance_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                int distanceInt = Convert.ToInt32(distance.Text);
+                float heightActual = Convert.ToSingle(heightDistance.Text);
+                int heightInt = Convert.ToInt32(heightActual * 10) + 5000;
+                int rangeFromDistance = (int)Math.Round(Math.Sqrt(distanceInt * distanceInt + heightActual * heightActual));
+                var angleRequired = angleData[rangeFromDistance, heightInt] / 10.0;
+                if (angleRequired == 0)
+                {
+                    angle.Text = $"Range: {rangeFromDistance} m";
+                    angle3.Text = "Out of range";
+                    return;
+                }
+                angle.Text = "FA: " + (angleRequired).ToString() +
+                    $"mils, {Math.Round((angleData[rangeFromDistance, heightInt] / 10.0) * (2 * Math.PI / 6.4), 1)} mRad, R: " +
+                    rangeFromDistance.ToString() + "m, T: "
+                    + flightTimeData[rangeFromDistance, heightInt].ToString() + " ms";
+
+                double sightAngle = Math.Asin((float)(heightActual / rangeFromDistance)) * (6400 / (2 * Math.PI));
+                double angleFire = angleData[rangeFromDistance, heightInt] / 10.0;
+                double angleFireAt0 = angleData[rangeFromDistance, 5000] / 10.0;
+                double angleDifference = angleFire - sightAngle;
+                angle3.Text = $"Sight Angle: {sightAngle} mils\n" +
+                    $"Firing Angle: {angleFire} mils\n" +
+                    $"Elevation at {angleFire} mils: {angleDifference} mils\n" +
+                    $"Elevation at 0 mils: {angleFireAt0} mils\n" +
+                    $"Elevation Difference: {angleDifference - angleFireAt0} mils";
             }
             catch (Exception)
             {
