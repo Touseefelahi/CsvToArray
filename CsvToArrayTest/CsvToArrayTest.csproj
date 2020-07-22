@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Platforms>AnyCPU;x64</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NReco.Csv" Version="1.0.0" />
+    <PackageReference Include="Stira.WpfCore" Version="1.0.1" />
+    <PackageReference Include="Stira.WpfFlatStyle" Version="1.6.2" />
+  </ItemGroup>
+
+</Project>

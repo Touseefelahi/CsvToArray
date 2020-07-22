@@ -70,6 +70,9 @@
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
+    <Reference Include="NReco.Csv, Version=0.0.0.0, Culture=neutral, PublicKeyToken=ef4fd95322a66714, processorArchitecture=MSIL">
+      <HintPath>..\packages\NReco.Csv.1.0.0\lib\net45\NReco.Csv.dll</HintPath>
+    </Reference>
     <Reference Include="Stira.WpfCore, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Stira.WpfCore.1.0.1\lib\netstandard1.0\Stira.WpfCore.dll</HintPath>
     </Reference>

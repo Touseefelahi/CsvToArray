@@ -1,0 +1,46 @@
+﻿<Window x:Class="CsvToArrayTest.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CsvToArrayTest"
+        mc:Ignorable="d" 
+        xmlns:flatStyle="clr-namespace:FlatStyle;assembly=FlatStyle"           
+        Style="{StaticResource FlatWindowTransparent}"
+        Title="m56 Hash Table Test" Height="450" Width="450">
+
+    <StackPanel Margin="10">
+        <TextBox  Style="{StaticResource FieldBox}" flatStyle:FieldName.Value="Range (m)"
+                      Margin="5" x:Name="range">
+            <TextBox.InputBindings>
+                <KeyBinding Key="Return" Command="{Binding AngleCalculateFromRangeCommand}"/>
+            </TextBox.InputBindings>
+        </TextBox>
+        <TextBox  Style="{StaticResource FieldBox}" flatStyle:FieldName.Value="Height (m)" 
+                      Margin="5" x:Name="height">
+            <TextBox.InputBindings>
+                <KeyBinding Key="Return" Command="{Binding AngleCalculateFromRangeCommand}"/>
+            </TextBox.InputBindings>
+        </TextBox>
+        <Button x:Name="buttonCalculate" Margin="5" Content="Check Angle" Click="Button_Click"/>
+
+        <TextBox  Style="{StaticResource FieldBox}" flatStyle:FieldName.Value="Distance (m)" 
+                      Margin="5" x:Name="distance">
+            <TextBox.InputBindings>
+                <KeyBinding Key="Return" Command="{Binding AngleCalculateFromDistanceCommand}"/>
+            </TextBox.InputBindings>
+        </TextBox>
+
+        <TextBox  Style="{StaticResource FieldBox}" flatStyle:FieldName.Value="Height (m)" 
+                      Margin="5" x:Name="heightDistance">
+            <TextBox.InputBindings>
+                <KeyBinding Key="Return" Command="{Binding AngleCalculateFromDistanceCommand}"/>
+            </TextBox.InputBindings>
+        </TextBox>
+        <Button x:Name="buttonCalculateDistance" Margin="5,5,5,20" Content="Check Angle" Click="buttonCalculateDistance_Click"/>
+        <TextBlock Text="Result:" Style="{StaticResource SecondaryBackgroundText}" FontSize="15" HorizontalAlignment="Stretch" Margin="5"/>
+        <TextBlock x:Name="angle" Margin="5"/>
+        <TextBlock x:Name="angle3" Margin="5" LineHeight="5" Height="200" TextWrapping="Wrap"/>
+    </StackPanel>
+
+</Window>
