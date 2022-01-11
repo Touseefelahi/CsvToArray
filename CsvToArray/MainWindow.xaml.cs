@@ -14,25 +14,34 @@ namespace CsvToArray
     /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// This is array length for range index. System m range length = 2501
+        /// </summary>
+        private const int rangeLength = 2501;
+
+        /// <summary>
+        /// This is array length for height index. System m height length = 30001
+        /// </summary>
+        private const int heightLength = 8001;
+
+        private short[,] angleData, angleDataFilled, flightTimeData;
+
         public MainWindow()
         {
             InitializeComponent();
             DataContext = this;
-            const string filePath = @"C:\Users\STIRA\source\repos\ReticleGenerator2.0\Presentation\ReticleGenerator\bin\Debug\netcoreapp3.1\RHA -200_1100 Gap=0.1 DistanceClip=2500.csv";
-            const string filePath2 = @"C:\Users\STIRA\source\repos\ReticleGenerator2.0\Presentation\ReticleGenerator\bin\Debug\netcoreapp3.1\RHA -200_1100 Gap=0.1 DistanceClip=2500.csv";
-            const string fileAngle = "angleSpaceDelimated 65 -500 level.txt";
-            const string fileTime = "timeSpaceDelimated 65 -500 level.txt";
+            const string fileAngle = "angleSpaceDelimated C-30 to 30.txt";
+            const string fileTime = "timeSpaceDelimated C-30 to 30.txt";
+            // GenerateCsvWithDashNegative500(filePath);
             AngleCalculateFromDistanceCommand = new DelegateCommand(CalculateFromDistance);
             AngleCalculateFromRangeCommand = new DelegateCommand(CalculateFromRange);
-            Task.Run(() =>
-            {
-                OpenAnglesForTesting(fileAngle);
-            });
-            Task.Run(() =>
-            {
-                OpenTimesForTesting(fileTime);
-            });
+            Task.Run(() => OpenAnglesForTesting(fileAngle));
+            Task.Run(() => OpenTimesForTesting(fileTime));
         }
+
+        public DelegateCommand AngleCalculateFromDistanceCommand { get; }
+
+        public DelegateCommand AngleCalculateFromRangeCommand { get; }
 
         private void CalculateFromDistance()
         {
@@ -41,7 +50,7 @@ namespace CsvToArray
 
         private void CalculateFromRange()
         {
-            Button_Click(null, null);
+            buttonCalculateRange_Click(null, null);
         }
 
         private void OpenAnglesForTesting(string fileAngle)
@@ -95,7 +104,6 @@ namespace CsvToArray
             int count = 0;
             var onePercent = lineCount / 100;
 
-
             using (var streamRdr = new StreamReader(fileTime))
             {
                 var csvReader = new NReco.Csv.CsvReader(streamRdr, " ");
@@ -126,188 +134,12 @@ namespace CsvToArray
             });
         }
 
-        private static void GenerateArray(string filePath)
-        {
-            string[] csvlines = File.ReadAllLines(filePath);
-            var query = from csvline in csvlines
-                        let data = csvline.Split(',')
-                        select new
-                        {
-                            Range = data[0],
-                            Height = data[1],
-                            Angle = data[2],
-                        };
-            int count = 0;
-            StringBuilder stringBuilder = new StringBuilder();
-            string arrayName = "A";
-            int previousRange = 0;
-            int previousHeight = 0;
-            int previousAngle = 0;
-            int angle = 0;
-            int range = 0;
-            int height = 0;
-            foreach (var value in query)
-            {
-                if (count++ == 0) continue;
-                angle = Convert.ToInt16(Convert.ToDouble(value.Angle) * 10);
-                range = Convert.ToInt16(value.Range);
-                height = Convert.ToInt16(value.Height);
-                if (angle == previousAngle)
-                {
-                    if (range - previousRange > 1)
-                    {
-                        for (int index = previousRange + 1; index < range; index++)
-                        {
-                            stringBuilder.Append(arrayName).Append('[').Append(index).Append("][").Append(height).Append("]=").Append(angle).AppendLine(";");
-                        }
-                    }
-                    if (height - previousHeight > 1)
-                    {
-                        for (int index = previousHeight + 1; index < height; index++)
-                        {
-                            stringBuilder.Append(arrayName).Append('[').Append(range).Append("][").Append(index).Append("]=").Append(angle).AppendLine(";");
-                        }
-                    }
-                }
-                stringBuilder.Append(arrayName).Append('[').Append(range).Append("][").Append(height).Append("]=").Append(angle).AppendLine(";");
-                previousRange = Convert.ToInt16(value.Range);
-                previousHeight = Convert.ToInt16(value.Height);
-                previousAngle = angle;
-            }
-            File.WriteAllText("arrayName.c", stringBuilder.ToString());
-        }
-
-        private void GenerateCsvWithDash(string filePath)
-        {
-            string[] csvlines = File.ReadAllLines(filePath);
-            var query = from csvline in csvlines
-                        let data = csvline.Split(',')
-                        select new
-                        {
-                            Range = data[0],
-                            Height = data[1],
-                            Angle = data[2],
-                        };
-            int count = 0;
-            StringBuilder stringBuilder = new StringBuilder();
-            int previousRange = 0;
-            int previousHeight = 0;
-            int previousAngle = 0;
-            int angle = 0;
-            int range = 0;
-            int height = 0;
-            int maxRange = 0;
-            int maxHeight = 0;
-            File.WriteAllText("csvDash.txt", "");
-            foreach (var value in query)
-            {
-                if (count++ == 0) continue;
-                angle = Convert.ToInt16(Convert.ToDouble(value.Angle) * 10);
-                range = Convert.ToInt16(value.Range);
-                height = Convert.ToInt16((Convert.ToDouble(value.Height) + 500) * 10);
-                if (range > maxRange) maxRange = range;
-                if (height > maxHeight) maxHeight = height;
-                if (angle == previousAngle)
-                {
-                    if (range - previousRange > 1)
-                    {
-                        for (int index = previousRange + 1; index < range; index++)
-                        {
-                            stringBuilder.Append(index).Append(',').Append(height).Append('-').Append(angle).AppendLine();
-                        }
-                    }
-                    if (height - previousHeight > 1)
-                    {
-                        for (int index = previousHeight + 1; index < height; index++)
-                        {
-                            stringBuilder.Append(range).Append(',').Append(index).Append('-').Append(angle).AppendLine();
-                        }
-                    }
-                }
-                stringBuilder.Append(range).Append(',').Append(height).Append('-').Append(angle).AppendLine();
-                previousRange = Convert.ToInt16(value.Range);
-                previousHeight = Convert.ToInt16(value.Height);
-                previousAngle = angle;
-                if (count % 1000 == 0)
-                {
-                    File.AppendAllText("csvDash.txt", stringBuilder.ToString());
-                    stringBuilder.Clear();
-                }
-            }
-            File.AppendAllText("csvDash.txt", stringBuilder.ToString());
-        }
-
-        private void GenerateCsvWithDash2(string filePath)
-        {
-            var data = new short[2, 2501, 2501];
-            int count = 0;
-            StringBuilder stringBuilder = new StringBuilder();
-            int previousRange = 0;
-            int previousHeight = 0;
-            int previousAngle = 0;
-            int angle = 0;
-            int range = 0;
-            int height = 0;
-            int flightTime = 0;
-            int maxRange = 0;
-            int maxHeight = 0;
-            File.WriteAllText("csvDashHash.txt", "");
-            var line = string.Empty;
-            var fileStream = File.OpenText(filePath);
-            while ((line = fileStream.ReadLine()) != null)
-            {
-                var value = line.Split(',');
-                if (count++ == 0) continue;
-                range = Convert.ToInt16(value[0]);
-                height = Convert.ToInt16(Convert.ToDouble(value[1]) * 10) + 500;
-                angle = Convert.ToInt16(Convert.ToDouble(value[2]) * 10);
-                flightTime = Convert.ToInt16(value[3]);
-                if (range > maxRange) maxRange = range;
-                if (height > maxHeight) maxHeight = height;
-                if (angle == previousAngle)
-                {
-                    if (range - previousRange > 1)
-                    {
-                        for (int index = previousRange + 1; index < range; index++)
-                        {
-                            stringBuilder.Append(index).Append(',').Append(height).Append(':').Append(angle).Append('#').Append(flightTime).AppendLine();
-                        }
-                    }
-                    if (Math.Abs(height - previousHeight) > 1)
-                    {
-                        for (int index = previousHeight + 1; index < height; index++)
-                        {
-                            stringBuilder.Append(range).Append(',').Append(index).Append(':').Append(angle).Append('#').Append(flightTime).AppendLine();
-                        }
-                    }
-                }
-                stringBuilder.Append(range).Append(',').Append(height).Append(':').Append(angle).Append('#').Append(flightTime).AppendLine();
-                previousRange = range;
-                previousHeight = height;
-                previousAngle = angle;
-                if (count % 100000 == 0)
-                {
-                    File.AppendAllText("csvDashHash.txt", stringBuilder.ToString());
-                    stringBuilder.Clear();
-                }
-            }
-            File.AppendAllText("csvDashHash.txt", stringBuilder.ToString());
-        }
-        short[,] angleData, angleDataFilled, flightTimeData;
-
-        public DelegateCommand AngleCalculateFromDistanceCommand { get; }
-        public DelegateCommand AngleCalculateFromRangeCommand { get; }
-
         private void GenerateCsvWithDashZeroLevel(string filePath)
         {
-            int rangeLength = 2501;
-            int heightLength = 30001;
             angleData = new Int16[rangeLength, heightLength];
             angleDataFilled = new Int16[rangeLength, heightLength];
             flightTimeData = new Int16[rangeLength, heightLength];
-
             int count = 0;
-
             int previousRange = 0;
             int previousHeight = 0;
             int previousAngle = 0;
@@ -443,7 +275,6 @@ namespace CsvToArray
                 {
                     for (int j = 0; j < 10; j++)
                     {
-
                         if (angleData[i - j, 10] != 0)
                         {
                             angleValue1 = angleData[i - j, 10];
@@ -456,7 +287,6 @@ namespace CsvToArray
                             stringBuilder50s.AppendLine($"1 correction {i + j}");
                             break;
                         }
-
                     }
                 }
                 try
@@ -467,12 +297,9 @@ namespace CsvToArray
                 }
                 catch (Exception)
                 {
-
                 }
             }
             File.AppendAllText("50sDelimated.txt", stringBuilder50s.ToString());
-
-
 
             File.WriteAllText("FilledPoints.txt", "");
             StringBuilder filledPoints = new StringBuilder();
@@ -485,7 +312,6 @@ namespace CsvToArray
             {
                 for (int indexHeight = 0; indexHeight < heightLength; indexHeight++)
                 {
-
                     angle = angleData[indexRange, indexHeight];
                     var distance = Math.Sqrt(indexRange * indexRange - ((indexHeight / 10) * (indexHeight / 10)));
 
@@ -511,8 +337,6 @@ namespace CsvToArray
                             }
                             catch (Exception)
                             {
-
-
                             }
                         }
                         if (angle != 0)
@@ -553,8 +377,6 @@ namespace CsvToArray
                                 }
                                 catch (Exception)
                                 {
-
-
                                 }
                             }
                             if (angle != 0)
@@ -578,14 +400,13 @@ namespace CsvToArray
                             }
                             else
                             {
-                                unfilledPoints.AppendLine($"{indexRange} {indexHeight}");
+                                unfilledPoints.Append(indexRange).Append(' ').Append(indexHeight).AppendLine();
                                 if (countUnfilled++ % 1000 == 0)
                                 {
                                     File.AppendAllText("UnFilledPoints.txt", unfilledPoints.ToString());
                                     unfilledPoints.Clear();
                                 }
                             }
-
                         }
                         angleData[indexRange, indexHeight] = angle;
                         flightTimeData[indexRange, indexHeight] = flightTime;
@@ -595,15 +416,10 @@ namespace CsvToArray
 
             File.AppendAllText("UnFilledPoints.txt", unfilledPoints.ToString());
             File.AppendAllText("FilledPoints.txt", filledPoints.ToString());
-
         }
-
-
 
         private void GenerateCsvWithDashNegative500(string filePath)
         {
-            int rangeLength = 2501;
-            int heightLength = 30001;
             angleData = new Int16[rangeLength, heightLength];
             angleDataFilled = new Int16[rangeLength, heightLength];
             flightTimeData = new Int16[rangeLength, heightLength];
@@ -684,41 +500,45 @@ namespace CsvToArray
             List<int> actualAngle = new List<int>
                 (new int[] { 0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 26, 30, 34, 39, 44, 49, 55, 62, 68 });
             int indexAngle = 0;
-            for (int i = 100; i <= 2500; i += 100)
+            try
             {
-                var angleValue0 = angleData[i, heightOffset];
-                if (angleValue0 == 0)
+                for (int i = 100; i <= 2500; i += 100)
                 {
-                    for (int j = 0; j < 10; j++)
+                    var angleValue0 = angleData[i, heightOffset];
+                    if (angleValue0 == 0)
                     {
-                        if (angleData[i - j, heightOffset] != 0)
+                        for (int j = 0; j < 10; j++)
                         {
-                            angleValue0 = angleData[i - j, heightOffset];
-                            stringBuilder50s.AppendLine($"0 correction {i - j}");
-                            break;
-                        }
-                        else if (angleData[i + j, heightOffset] != 0)
-                        {
-                            angleValue0 = angleData[i + j, heightOffset];
-                            stringBuilder50s.AppendLine($"0 correction {i + j}");
-                            break;
+                            if (angleData[i - j, heightOffset] != 0)
+                            {
+                                angleValue0 = angleData[i - j, heightOffset];
+                                stringBuilder50s.AppendLine($"0 correction {i - j}");
+                                break;
+                            }
+                            else if (angleData[i + j, heightOffset] != 0)
+                            {
+                                angleValue0 = angleData[i + j, heightOffset];
+                                stringBuilder50s.AppendLine($"0 correction {i + j}");
+                                break;
+                            }
                         }
                     }
-                }
-                try
-                {
-                    var error = (angleValue0 - actualAngle[indexAngle] * 10) / 10.0;
-                    stringBuilder50s.AppendLine($"{i} 0 {angleValue0} {error}");
-                    indexAngle++;
-                }
-                catch (Exception)
-                {
-
+                    try
+                    {
+                        var error = (angleValue0 - actualAngle[indexAngle] * 10) / 10.0;
+                        stringBuilder50s.AppendLine($"{i} 0 {angleValue0} {error}");
+                        indexAngle++;
+                    }
+                    catch (Exception)
+                    {
+                    }
                 }
             }
+            catch (Exception)
+            {
+            }
+
             File.AppendAllText("50sDelimated.txt", stringBuilder50s.ToString());
-
-
 
             File.WriteAllText("FilledPoints.txt", "");
             StringBuilder filledPoints = new StringBuilder();
@@ -731,7 +551,6 @@ namespace CsvToArray
             {
                 for (int indexHeight = 0; indexHeight < heightLength; indexHeight++)
                 {
-
                     angle = angleData[indexRange, indexHeight];
                     var distance = Math.Sqrt(indexRange * indexRange - (((indexHeight - heightOffset) / 10) * ((indexHeight - heightOffset) / 10)));
                     var heightLimit = distance * 24; // distance * 10 * 2.4 (tan 65)
@@ -761,8 +580,6 @@ namespace CsvToArray
                             }
                             catch (Exception ex)
                             {
-
-
                             }
                         }
                         if (angle != 0)
@@ -806,8 +623,6 @@ namespace CsvToArray
                                 }
                                 catch (Exception)
                                 {
-
-
                                 }
                             }
                             if (angle != 0)
@@ -838,21 +653,20 @@ namespace CsvToArray
                                     unfilledPoints.Clear();
                                 }
                             }
-
                         }
                         angleData[indexRange, indexHeight] = angle;
                         flightTimeData[indexRange, indexHeight] = flightTime;
                     }
                 }
             }
-
             File.AppendAllText("UnFilledPoints.txt", unfilledPoints.ToString());
             File.AppendAllText("FilledPoints.txt", filledPoints.ToString());
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
+    
 
+        private void buttonCalculateRange_Click(object sender, RoutedEventArgs e)
+        {
             try
             {
                 int rangeInt = Convert.ToInt32(range.Text);
@@ -886,11 +700,9 @@ namespace CsvToArray
                     $"Elevation at {angleFire} mils: {angleDifference} mils\n" +
                     $"Elevation at 0 mils: {angleFireAt0} mils\n" +
                     $"Elevation Difference: {angleDifference - angleFireAt0} mils";
-
             }
             catch (Exception)
             {
-
             }
         }
 
@@ -926,7 +738,6 @@ namespace CsvToArray
             }
             catch (Exception)
             {
-
             }
         }
     }

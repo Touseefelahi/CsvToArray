@@ -18,19 +18,15 @@ namespace CsvToArrayTest
         {
             InitializeComponent();
             DataContext = this;
-            const string filePath = @"C:\Users\STIRA\source\repos\ReticleGenerator2.0\Presentation\ReticleGenerator\bin\Debug\netcoreapp3.1\RHA -200_1100 Gap=0.1 DistanceClip=2500.csv";
-            const string filePath2 = @"C:\Users\STIRA\source\repos\ReticleGenerator2.0\Presentation\ReticleGenerator\bin\Debug\netcoreapp3.1\RHA -200_1100 Gap=0.1 DistanceClip=2500.csv";
-            const string fileAngle = "angleSpaceDelimated 65 -500 level.txt";
-            const string fileTime = "timeSpaceDelimated 65 -500 level.txt";
             AngleCalculateFromDistanceCommand = new DelegateCommand(CalculateFromDistance);
             AngleCalculateFromRangeCommand = new DelegateCommand(CalculateFromRange);
             Task.Run(() =>
             {
-                OpenAnglesForTesting(fileAngle);
+                OpenAnglesForTesting("angle");
             });
             Task.Run(() =>
             {
-                OpenTimesForTesting(fileTime);
+                OpenTimesForTesting("time");
             });
         }
 
@@ -44,8 +40,18 @@ namespace CsvToArrayTest
             Button_Click(null, null);
         }
 
-        private void OpenAnglesForTesting(string fileAngle)
+        private void OpenAnglesForTesting(string textFileContainingName)
         {
+            string fileAngle = GetFilePath(textFileContainingName);
+
+            if (string.IsNullOrEmpty(fileAngle))
+            {
+                angle.Dispatcher.Invoke(() =>
+                {
+                    angle.Text = $"Angle Data: .txt file containing \"{textFileContainingName}\" not found";
+                });
+                return;
+            }
             angle.Dispatcher.Invoke(() =>
             {
                 angle.Text = "Reading Angles";
@@ -68,19 +74,43 @@ namespace CsvToArrayTest
                     {
                         angle.Dispatcher.Invoke(() =>
                         {
-                            angle.Text = $"Reading Angles { Math.Round(((float)count / lineCount) * 100, 1)} % completed";
+                            angle.Text = $"Reading Angles from {Path.GetFileName(fileAngle)}, { Math.Round(((float)count / lineCount) * 100, 1)} % completed";
                         });
                     }
                 }
             }
             angle.Dispatcher.Invoke(() =>
             {
-                angle.Text = "Angle values data read done";
+                angle.Text = $"Angle data read done, rows read: {count}";
             });
         }
 
-        private void OpenTimesForTesting(string fileTime)
+        private string GetFilePath(string textFileContainingName)
         {
+            string[] filePaths = Directory.GetFiles(Environment.CurrentDirectory, "*.txt");
+            string fileAngle = string.Empty;
+            foreach (string filePath in filePaths)
+            {
+                if (filePath.Contains(textFileContainingName))
+                {
+                    fileAngle = filePath;
+                }
+            }
+            return fileAngle;
+        }
+
+        private void OpenTimesForTesting(string textFileContainingName)
+        {
+            string fileTime = GetFilePath(textFileContainingName);
+
+            if (string.IsNullOrEmpty(fileTime))
+            {
+                angle.Dispatcher.Invoke(() =>
+                {
+                    angle3.Text = $"Time data: .txt file containing \"{textFileContainingName}\" not found";
+                });
+                return;
+            }
             angle3.Dispatcher.Invoke(() =>
             {
                 angle3.Text = "Reading Time";
@@ -106,23 +136,15 @@ namespace CsvToArrayTest
                     {
                         angle.Dispatcher.Invoke(() =>
                         {
-                            angle3.Text = $"Reading Time { Math.Round(((float)count / lineCount) * 100, 1)} % completed";
+                            angle3.Text = $"Reading Time from {Path.GetFileName(fileTime)}, { Math.Round(((float)count / lineCount) * 100, 1)} % completed";
                         });
                     }
                 }
             }
 
-            //string line;
-            //while ((line = fileStream2.ReadLine()) != null)
-            //{
-            //    var value = line.Split(' ');
-            //    flightTimeData[Convert.ToInt16(value[0]), Convert.ToInt16(Convert.ToDouble(value[1]))] = Convert.ToInt16(Convert.ToDouble(value[2]));
-
-            //}
-
             angle3.Dispatcher.Invoke(() =>
             {
-                angle3.Text = "Flight time data read done";
+                angle3.Text = $"Flight time data read done, rows read: {count}";
             });
         }
 

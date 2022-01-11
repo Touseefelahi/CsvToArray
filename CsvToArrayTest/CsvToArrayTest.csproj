@@ -2,15 +2,15 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
-    <Platforms>AnyCPU;x64</Platforms>
+    <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="NReco.Csv" Version="1.0.0" />
-    <PackageReference Include="Stira.WpfCore" Version="1.0.1" />
-    <PackageReference Include="Stira.WpfFlatStyle" Version="1.6.2" />
+    <PackageReference Include="Stira.WpfCore" Version="1.1.0" />
+    <PackageReference Include="Stira.WpfFlatStyle" Version="1.9.2.1" />
   </ItemGroup>
 
 </Project>
