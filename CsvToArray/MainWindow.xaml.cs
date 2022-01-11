@@ -1,4 +1,5 @@
-﻿using Stira.WpfCore;
+﻿using ElevationAngleCalculator;
+using Stira.WpfCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,28 +31,40 @@ namespace CsvToArray
         {
             InitializeComponent();
             DataContext = this;
-            const string fileAngle = "angleSpaceDelimated C-30 to 30.txt";
-            const string fileTime = "timeSpaceDelimated C-30 to 30.txt";
+            SetM56A3();
+            const string fileAngle = @"C:\Stira\System M ammo table\angle.txt";
+            const string fileTime = @"C:\Stira\System M ammo table\time.txt";
             // GenerateCsvWithDashNegative500(filePath);
-            AngleCalculateFromDistanceCommand = new DelegateCommand(CalculateFromDistance);
             AngleCalculateFromRangeCommand = new DelegateCommand(CalculateFromRange);
             Task.Run(() => OpenAnglesForTesting(fileAngle));
             Task.Run(() => OpenTimesForTesting(fileTime));
+        }
+
+        double velocityMps, latencyMs;
+        private readonly Equation windCrossEquation = new();
+        private readonly Equation windHeadEquation = new();
+        private readonly Equation windTailEquation = new();
+        private readonly Equation driftEquation = new();
+        private readonly Equation airDensityHighEquation = new();
+        private readonly Equation airDensityLowEquation = new();
+
+        private void SetM56A3()
+        {
+            velocityMps = 1250;
+            latencyMs = 104;
+            windCrossEquation.SetCoefficients("3.53929168000000E-02	9.93616989000000E-05	4.78831000000000E-07	-8.99000000000000E-11");
+            windHeadEquation.SetCoefficients("2.15392916800000E-01	-8.02983539200000E-04	1.15522390000000E-06	-4.78000000000000E-11");
+            windTailEquation.SetCoefficients("2.15392916800000E-01	-8.02983539200000E-04	1.15522390000000E-06	-4.78000000000000E-11");
+            driftEquation.SetCoefficients("-4.80000000000008E-01	2.61428571428573E-03	-1.67142857142858E-06	6.00000000000002E-10");
+            airDensityHighEquation.SetCoefficients("1.56333333720000E+00	-3.39333334590000E-03	6.86333330000000E-06	-1.26000000000000E-09");
+            airDensityLowEquation.SetCoefficients("1.56333333720000E+00	-3.39333334590000E-03	6.86333330000000E-06	-1.26000000000000E-09");
         }
 
         public DelegateCommand AngleCalculateFromDistanceCommand { get; }
 
         public DelegateCommand AngleCalculateFromRangeCommand { get; }
 
-        private void CalculateFromDistance()
-        {
-            buttonCalculateDistance_Click(null, null);
-        }
-
-        private void CalculateFromRange()
-        {
-            buttonCalculateRange_Click(null, null);
-        }
+        private void CalculateFromRange() => buttonCalculateRange_Click(null, null);
 
         private void OpenAnglesForTesting(string fileAngle)
         {
@@ -119,14 +132,6 @@ namespace CsvToArray
                     }
                 }
             }
-
-            //string line;
-            //while ((line = fileStream2.ReadLine()) != null)
-            //{
-            //    var value = line.Split(' ');
-            //    flightTimeData[Convert.ToInt16(value[0]), Convert.ToInt16(Convert.ToDouble(value[1]))] = Convert.ToInt16(Convert.ToDouble(value[2]));
-
-            //}
 
             angle3.Dispatcher.Invoke(() =>
             {
@@ -663,14 +668,28 @@ namespace CsvToArray
             File.AppendAllText("FilledPoints.txt", filledPoints.ToString());
         }
 
-    
+
 
         private void buttonCalculateRange_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                int rangeInt = Convert.ToInt32(range.Text);
-                float heightActual = Convert.ToSingle(height.Text);
+                int rangeInt = Convert.ToInt32(rangeText.Text);
+                int actualRange = rangeInt;
+                float heightActual = Convert.ToSingle(heightText.Text);
+                double speedKmph = GetDouble(speedText.Text);
+                double windSpeedCross = GetDouble(windSpeedCrossText.Text);
+                double windSpeedHead = GetDouble(windSpeedHeadText.Text);
+                double airDensity = GetDouble(airDensityText.Text);
+
+                double percentChange = (airDensity - 1.225) * 100 / 1.225;
+
+                var adEffect = airDensityHighEquation.GetValue(rangeInt) * percentChange;
+                var headWindEffect = windHeadEquation.GetValue(rangeInt) * windSpeedHead;
+                rangeInt = (int)(rangeInt + adEffect - headWindEffect); //Compensated Range
+
+
+
                 if (rangeInt > 2500 || heightActual > 2500)
                 {
                     angle.Text = "";
@@ -687,58 +706,78 @@ namespace CsvToArray
                     angle3.Text = "Out of range";
                     return;
                 }
-                angle.Text = "FA: " + (angleRequired).ToString()
-                    + $" mils, {Math.Round((angleData[rangeInt, heightInt] / 10.0) * (2 * Math.PI / 6.4), 1)} mRad, D: " + distance.ToString()
-                    + " m, T: " + flightTimeData[rangeInt, heightInt].ToString() + " ms";
 
-                double sightAngle = Math.Asin((float)(heightActual / rangeInt)) * (6400 / (2 * Math.PI));
+                double speedMps = speedKmph / 3.6;
+
+                var movingTargetShift = -(speedMps / rangeInt) * (6400 / (2 * Math.PI)) * ((flightTimeData[rangeInt, heightInt] + latencyMs) / 1000);
+                var crossWindEffect = windCrossEquation.GetValue(rangeInt) * windSpeedCross;
+                var driftEffect = driftEquation.GetValue(rangeInt);
+                var totalAzimuthShift = Math.Round(crossWindEffect + driftEffect + movingTargetShift, 2);
+
+
+
+
+                angle.Text = "FA: " + (angleRequired).ToString()
+                    + $" mils, Az " + totalAzimuthShift + " mils, T: " + flightTimeData[rangeInt, heightInt].ToString() + " ms";
+
+                double sightAngle = Math.Asin((float)(heightActual / actualRange)) * (6400 / (2 * Math.PI));
                 double angleFire = angleData[rangeInt, heightInt] / 10.0;
                 double angleFireAt0 = angleData[rangeInt, 5000] / 10.0;
                 double angleDifference = angleFire - sightAngle;
-                angle3.Text = $"Sight Angle: {sightAngle} mils\n" +
-                    $"Firing Angle: {angleFire} mils\n" +
-                    $"Elevation at {angleFire} mils: {angleDifference} mils\n" +
-                    $"Elevation at 0 mils: {angleFireAt0} mils\n" +
-                    $"Elevation Difference: {angleDifference - angleFireAt0} mils";
+                angle3.Text = $"Sight Angle: {sightAngle:N2} mils\n" +
+                    $"Firing Angle: {angleFire:N2} mils\n" +
+                    $"Elevation at {angleFire:N2} mils: {angleDifference:N2} mils\n" +
+                    $"Elevation at 0 mils: {angleFireAt0:N2} mils\n" +
+                    $"Elevation Difference: {angleDifference - angleFireAt0:N2} mils";
             }
             catch (Exception)
             {
             }
         }
 
-        private void buttonCalculateDistance_Click(object sender, RoutedEventArgs e)
+        private static double GetDouble(string text)
         {
-            try
+            if (string.IsNullOrWhiteSpace(text))
             {
-                int distanceInt = Convert.ToInt32(distance.Text);
-                float heightActual = Convert.ToSingle(heightDistance.Text);
-                int heightInt = Convert.ToInt32(heightActual * 10) + 5000;
-                int rangeFromDistance = (int)Math.Round(Math.Sqrt(distanceInt * distanceInt + heightActual * heightActual));
-                var angleRequired = angleData[rangeFromDistance, heightInt] / 10.0;
-                if (angleRequired == 0)
-                {
-                    angle.Text = $"Range: {rangeFromDistance} m";
-                    angle3.Text = "Out of range";
-                    return;
-                }
-                angle.Text = "FA: " + (angleRequired).ToString() +
-                    $"mils, {Math.Round((angleData[rangeFromDistance, heightInt] / 10.0) * (2 * Math.PI / 6.4), 1)} mRad, R: " +
-                    rangeFromDistance.ToString() + "m, T: "
-                    + flightTimeData[rangeFromDistance, heightInt].ToString() + " ms";
-
-                double sightAngle = Math.Asin((float)(heightActual / rangeFromDistance)) * (6400 / (2 * Math.PI));
-                double angleFire = angleData[rangeFromDistance, heightInt] / 10.0;
-                double angleFireAt0 = angleData[rangeFromDistance, 5000] / 10.0;
-                double angleDifference = angleFire - sightAngle;
-                angle3.Text = $"Sight Angle: {sightAngle} mils\n" +
-                    $"Firing Angle: {angleFire} mils\n" +
-                    $"Elevation at {angleFire} mils: {angleDifference} mils\n" +
-                    $"Elevation at 0 mils: {angleFireAt0} mils\n" +
-                    $"Elevation Difference: {angleDifference - angleFireAt0} mils";
+                return 0;
             }
-            catch (Exception)
-            {
-            }
+            return Convert.ToDouble(text);
         }
+
+        //    private void buttonCalculateDistance_Click(object sender, RoutedEventArgs e)
+        //    {
+        //        try
+        //        {
+        //            int distanceInt = Convert.ToInt32(distance.Text);
+        //            float heightActual = Convert.ToSingle(heightDistance.Text);
+        //            int heightInt = Convert.ToInt32(heightActual * 10) + 5000;
+        //            int rangeFromDistance = (int)Math.Round(Math.Sqrt(distanceInt * distanceInt + heightActual * heightActual));
+        //            var angleRequired = angleData[rangeFromDistance, heightInt] / 10.0;
+        //            if (angleRequired == 0)
+        //            {
+        //                angle.Text = $"Range: {rangeFromDistance} m";
+        //                angle3.Text = "Out of range";
+        //                return;
+        //            }
+        //            angle.Text = "FA: " + (angleRequired).ToString() +
+        //                $"mils, {Math.Round((angleData[rangeFromDistance, heightInt] / 10.0) * (2 * Math.PI / 6.4), 1)} mRad, R: " +
+        //                rangeFromDistance.ToString() + "m, T: "
+        //                + flightTimeData[rangeFromDistance, heightInt].ToString() + " ms";
+
+        //            double sightAngle = Math.Asin((float)(heightActual / rangeFromDistance)) * (6400 / (2 * Math.PI));
+        //            double angleFire = angleData[rangeFromDistance, heightInt] / 10.0;
+        //            double angleFireAt0 = angleData[rangeFromDistance, 5000] / 10.0;
+        //            double angleDifference = angleFire - sightAngle;
+        //            angle3.Text = $"Sight Angle: {sightAngle} mils\n" +
+        //                $"Firing Angle: {angleFire} mils\n" +
+        //                $"Elevation at {angleFire} mils: {angleDifference} mils\n" +
+        //                $"Elevation at 0 mils: {angleFireAt0} mils\n" +
+        //                $"Elevation Difference: {angleDifference - angleFireAt0} mils";
+        //        }
+        //        catch (Exception)
+        //        {
+        //        }
+        //    }
+        //
     }
 }
