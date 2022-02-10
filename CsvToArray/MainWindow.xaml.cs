@@ -32,12 +32,26 @@ namespace CsvToArray
             InitializeComponent();
             DataContext = this;
             SetM56A3();
-            const string fileAngle = @"C:\Stira\System M ammo table\angle.txt";
-            const string fileTime = @"C:\Stira\System M ammo table\time.txt";
+            string fileAngle = GetFilePath("angle");
+            string fileTime = GetFilePath("time");
             // GenerateCsvWithDashNegative500(filePath);
             AngleCalculateFromRangeCommand = new DelegateCommand(CalculateFromRange);
             Task.Run(() => OpenAnglesForTesting(fileAngle));
             Task.Run(() => OpenTimesForTesting(fileTime));
+        }
+
+        private string GetFilePath(string textContainingTheFilePath)
+        {
+            string path = string.Empty;
+            string[] filePaths = Directory.GetFiles(Environment.CurrentDirectory, "*.txt");
+            foreach (var filePath in filePaths)
+            {
+                if (filePath.Contains(textContainingTheFilePath))
+                {
+                    path = filePath;
+                }
+            }
+            return path;
         }
 
         double velocityMps, latencyMs;
@@ -709,13 +723,11 @@ namespace CsvToArray
 
                 double speedMps = speedKmph / 3.6;
 
-                var movingTargetShift = -(speedMps / rangeInt) * (6400 / (2 * Math.PI)) * ((flightTimeData[rangeInt, heightInt] + latencyMs) / 1000);
+                var angularSpeed = -(speedMps / actualRange) * (6400 / (2 * Math.PI));
+                var movingTargetShift = angularSpeed * ((flightTimeData[rangeInt, heightInt] + 104) / 1000.0);
                 var crossWindEffect = windCrossEquation.GetValue(rangeInt) * windSpeedCross;
                 var driftEffect = driftEquation.GetValue(rangeInt);
-                var totalAzimuthShift = Math.Round(crossWindEffect + driftEffect + movingTargetShift, 2);
-
-
-
+                var totalAzimuthShift = Math.Round(crossWindEffect - driftEffect + movingTargetShift, 2);
 
                 angle.Text = "FA: " + (angleRequired).ToString()
                     + $" mils, Az " + totalAzimuthShift + " mils, T: " + flightTimeData[rangeInt, heightInt].ToString() + " ms";
